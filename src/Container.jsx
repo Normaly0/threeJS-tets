@@ -1,11 +1,12 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TextureLoader } from "three/src/loaders/TextureLoader";
-import { Canvas, useLoader, useFrame } from '@react-three/fiber';
-import { OrbitControls, useScroll, ScrollControls, Scroll } from '@react-three/drei';
-import { MathUtils } from "three";
+import { Canvas, useLoader, useFrame, useThree } from '@react-three/fiber';
+import { useScroll, ScrollControls, Scroll, useGLTF, useAnimations, OrbitControls } from '@react-three/drei';
+import { MathUtils, MeshBasicMaterial, MeshStandardMaterial } from "three";
 
 import './Container.scss'
-import Responsive from './Responsive';
+
+//Blender animation tests
 
 function Scene() {
 
@@ -95,17 +96,17 @@ function Scene() {
           wireframe={true}
         />
       </mesh>
-    <Cube />
+      <Cube />
 
-    <mesh ref={sphereRef} position={[-6.5, 2, 1]}>
-      <sphereGeometry args={[1]} />
-      <meshStandardMaterial map={color} transparent={true} emissive={'#00A6FF'} emissiveIntensity={2}/>
-    </mesh>
+      <mesh ref={sphereRef} position={[-6.5, 2, 1]}>
+        <sphereGeometry args={[1]} />
+        <meshStandardMaterial map={color} transparent={true} emissive={'#00A6FF'} emissiveIntensity={2}/>
+      </mesh>
 
-    <mesh position={[-8.5, -8, 1]} rotation-y={Math.PI * 0.5} ref={backRef}>
-      <planeGeometry args={[13, 10]}/>
-      <meshBasicMaterial color={'#FFFFFF'} toneMapped={false}/>
-    </mesh>
+      <mesh position={[-8.5, -8, 1]} rotation-y={Math.PI * 0.5} ref={backRef}>
+        <planeGeometry args={[13, 10]}/>
+        <meshBasicMaterial color={'#FFFFFF'} toneMapped={false}/>
+      </mesh>
 
     </group>
   )
@@ -134,6 +135,64 @@ function Cube() {
       </mesh>
     </>
   )
+}
+
+function Stage() {
+
+  const url = window.location.href
+  const stage = useGLTF(url + '/stage.glb')
+  const stageRef = useRef();
+
+  const {setDefaultCamera} = useThree();
+
+  return (
+    <group ref={stageRef}>
+      <mesh 
+        geometry={stage.nodes.Plane006_2.geometry}
+        >
+        <meshStandardMaterial />
+      </mesh>
+      <mesh 
+        geometry={stage.nodes.Plane006_1.geometry}
+      >
+        <meshStandardMaterial />
+      </mesh>
+    </group>
+  )
+
+}
+
+function Camera() {
+
+  const cameraRef = useRef();
+
+  const {cameras, animations} = useGLTF('/camera.glb');
+  const { ref: animationRef, actions } = useAnimations(animations);
+
+  const set = useThree((state) => state.set);
+  
+  useEffect(() => {
+
+    console.log(actions);
+    console.log(animationRef);
+
+    cameraRef.current = cameras[0];
+
+    set({camera: cameraRef.current})
+    
+  }, [])
+
+  useEffect(() => {
+    if (animationRef.current) {
+      console.log('ENTERED')
+      const clip = animations[0];
+      animationRef.current.stop();
+      actions[clip.name].play();
+    }
+  }, [animationRef]);
+
+
+  return
 }
 
 function Container() {
@@ -189,10 +248,13 @@ function Container() {
 
       </Canvas> */}
 
-      <Canvas >
-        <ambientLight />
-        <OrbitControls />
-        <Responsive />
+      <Canvas>
+
+        <pointLight position={[0.2, 0.1, .1]}/>
+        {/* <OrbitControls /> */}
+        <Stage />
+        <Camera />
+
       </Canvas>
 
     </div>
