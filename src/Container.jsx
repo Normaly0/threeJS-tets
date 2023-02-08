@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { TextureLoader } from "three/src/loaders/TextureLoader";
 import { Canvas, useLoader, useFrame, useThree } from '@react-three/fiber';
-import { useScroll, ScrollControls, Scroll, useGLTF, useAnimations, OrbitControls } from '@react-three/drei';
+import { useScroll, ScrollControls, Scroll, useGLTF, useAnimations, OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import { MathUtils, MeshBasicMaterial, MeshStandardMaterial } from "three";
 
 import './Container.scss'
@@ -146,58 +146,48 @@ function Stage() {
   const {setDefaultCamera} = useThree();
 
   return (
-    <group ref={stageRef}>
-      <mesh 
-        geometry={stage.nodes.Plane006_2.geometry}
-        >
-        <meshStandardMaterial />
-      </mesh>
-      <mesh 
-        geometry={stage.nodes.Plane006_1.geometry}
-      >
-        <meshStandardMaterial />
-      </mesh>
-    </group>
+    <primitive object={stage.scene} scale={1} />
   )
 
 }
 
 function Camera() {
 
-  const cameraRef = useRef();
+  const group = useRef();
+  const { animations } = useGLTF("/camera.glb");
+  const { actions } = useAnimations(animations, group);
 
-  const {cameras, animations} = useGLTF('/camera.glb');
-  const { ref: animationRef, actions } = useAnimations(animations);
-
-  const set = useThree((state) => state.set);
-  
   useEffect(() => {
+    const intro = actions['Camera.002Action']
+    intro.play();
+    console.log(intro._clip.duration) //1.7083333730697632
 
-    console.log(actions);
-    console.log(animationRef);
+    setTimeout(() => {
+      intro.halt();
+    }, 1680)
 
-    cameraRef.current = cameras[0];
-
-    set({camera: cameraRef.current})
-    
   }, [])
 
-  useEffect(() => {
-    if (animationRef.current) {
-      console.log('ENTERED')
-      const clip = animations[0];
-      animationRef.current.stop();
-      actions[clip.name].play();
-    }
-  }, [animationRef]);
+  return (
 
+    <group ref={group} dispose={null}>
+      <group name="Scene">
+        <PerspectiveCamera
+          name="Camera002"
+          makeDefault
+          far={1000}
+          near={0.1}
+          fov={19.16}
+          position={[9.54, 5.66, 22.09]}
+          rotation={[0.1, 1.03, -0.13]}
+        />
+      </group>
+    </group>
 
-  return
+  );
 }
 
 function Container() {
-
- const cameraRef = useRef();
 
   return ( 
   <>
