@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { TextureLoader } from "three/src/loaders/TextureLoader";
 import { Canvas, useLoader, useFrame, useThree } from '@react-three/fiber';
 import { useScroll, ScrollControls, Scroll, useGLTF, useAnimations, OrbitControls, PerspectiveCamera } from '@react-three/drei';
-import { MathUtils, MeshBasicMaterial, MeshStandardMaterial } from "three";
+import { MathUtils, MeshBasicMaterial, MeshStandardMaterial, LoopOnce } from "three";
 
 import './Container.scss'
 
@@ -167,12 +167,13 @@ function Camera() {
   const { actions } = useAnimations(animations, group);
 
   useEffect(() => {
+
     const intro = actions['Camera.002Action']
+    intro.clampWhenFinished = true
+    intro.setLoop(LoopOnce)
     intro.play();
 
-    setTimeout(() => {
-      intro.halt();
-    }, 1680)
+    console.log(intro)
 
   }, [])
 
