@@ -139,14 +139,23 @@ function Cube() {
 
 function Stage() {
 
-  const url = window.location.href
-  const stage = useGLTF(url + '/stage.glb')
-  const stageRef = useRef();
+  const stage = useGLTF('/stage.glb')
+  const shapeKeyCube = useGLTF("/shape_key_cube.glb");
 
-  const {setDefaultCamera} = useThree();
+  const animations = useAnimations(shapeKeyCube.animations, shapeKeyCube.scene);
+  
+  useEffect(() => {
+    // const animation = animations.actions['Cube.011']
+    const animation = animations.actions.KeyAction
+
+    animation.play();
+  })
 
   return (
-    <primitive object={stage.scene} scale={1} />
+    <>
+      <primitive object={stage.scene} />
+      <primitive object={shapeKeyCube.scene} />
+    </>
   )
 
 }
@@ -160,7 +169,6 @@ function Camera() {
   useEffect(() => {
     const intro = actions['Camera.002Action']
     intro.play();
-    console.log(intro._clip.duration) //1.7083333730697632
 
     setTimeout(() => {
       intro.halt();
@@ -177,7 +185,8 @@ function Camera() {
           makeDefault
           far={1000}
           near={0.1}
-          fov={19.16}
+          // fov={19.16}
+          fov={25}
           position={[9.54, 5.66, 22.09]}
           rotation={[0.1, 1.03, -0.13]}
         />
@@ -240,7 +249,7 @@ function Container() {
 
       <Canvas>
 
-        <pointLight position={[0.2, 0.1, .1]}/>
+        <pointLight position={[3, 5, 7]}/>
         {/* <OrbitControls /> */}
         <Stage />
         <Camera />
