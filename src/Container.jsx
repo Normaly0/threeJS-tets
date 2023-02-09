@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { TextureLoader } from "three/src/loaders/TextureLoader";
 import { Canvas, useLoader, useFrame, useThree } from '@react-three/fiber';
 import { useScroll, ScrollControls, Scroll, useGLTF, useAnimations, OrbitControls, PerspectiveCamera } from '@react-three/drei';
-import { MathUtils, MeshBasicMaterial, MeshStandardMaterial, LoopOnce } from "three";
+import { MathUtils, MeshBasicMaterial, MeshStandardMaterial, LoopOnce, LoopPingPong } from "three";
 
 import './Container.scss'
 
@@ -145,15 +145,43 @@ function Stage() {
   const animations = useAnimations(shapeKeyCube.animations, shapeKeyCube.scene);
   
   useEffect(() => {
-    // const animation = animations.actions['Cube.011']
-    const animation = animations.actions.KeyAction
+    const animation = animations.actions.KeyAction;
 
     animation.play();
+    animation.paused = true;
+  })
+
+  // Animate cube shapekey based on scroll amount
+
+  // window.addEventListener('scroll', () => {
+  //   const animation = animations.actions.KeyAction;
+  //   const scrollProgress = window.scrollY / window.innerHeight;
+  //   const totalDuration = animation.getClip().duration;
+
+  //   const currentTime = totalDuration * scrollProgress;
+
+  //   animation.play();
+  //   animation.paused = true
+  //   animation.time = currentTime;
+    
+  // })
+
+
+  useFrame(() => {
+
+    const animation = animations.actions.KeyAction;
+    const scrollProgress = window.scrollY / window.innerHeight;
+
+    const totalDuration = animation.getClip().duration;
+    const currentTime = animation.time;
+    const targetTime = totalDuration * scrollProgress;
+
+    animation.time = MathUtils.lerp(currentTime, targetTime, .05)
   })
 
   return (
     <>
-      <primitive object={stage.scene} />
+      <primitive object={stage.scene}></primitive> 
       <primitive object={shapeKeyCube.scene} />
     </>
   )
@@ -201,6 +229,16 @@ function Container() {
 
   return ( 
   <>
+    <div className="html">
+      <p>asdadadasd</p>
+      <p>asdadadasd</p>
+      <p>asdadadasd</p>
+      <p>asdadadasd</p>
+      <p>asdadadasd</p>
+      <p>asdadadasd</p>
+      <p>asdadadasd</p>
+      <p>asdadadasd</p>
+    </div>
     <div className="container">
       
       {/* <Canvas camera={{position: [1, 2, 4.5]}}>
