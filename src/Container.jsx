@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
 import { TextureLoader } from "three/src/loaders/TextureLoader";
 import { Canvas, useLoader, useFrame, useThree } from '@react-three/fiber';
 import { useScroll, ScrollControls, Scroll, useGLTF, useAnimations, OrbitControls, PerspectiveCamera } from '@react-three/drei';
-import { MathUtils, MeshBasicMaterial, MeshStandardMaterial, LoopOnce, LoopPingPong } from "three";
+import { MathUtils, MeshBasicMaterial, MeshStandardMaterial, LoopOnce, sRGBEncoding, PointsMaterial } from "three";
+import { Perf } from "r3f-perf";
 
 import './Container.scss'
 
@@ -139,33 +140,41 @@ function Cube() {
 
 function Stage() {
 
-  const stage = useGLTF('/stage.glb')
-  const shapeKeyCube = useGLTF("/shape_key_cube.glb");
+  //Performance
 
+  const info = useThree().gl.info
+  useThree().gl.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  
+  useEffect(() => {
+    console.log(info)
+  }, [])
+
+  //Load and setup Stage
+
+  const stage = useGLTF('./stage_detailed.glb');
+  const diffuseMap = useLoader(TextureLoader, './Diffuse.jpg');
+  diffuseMap.flipY = false;
+  diffuseMap.encoding = sRGBEncoding;
+
+  const stageObj = stage.scene.children.find((e) => {return e.name === 'merged_stage'});
+  stageObj.material = new MeshStandardMaterial({map: diffuseMap})
+  stageObj.castShadow = true;
+  stageObj.receiveShadow = true;
+
+  //Load and setup animated cube
+
+  const shapeKeyCube = useGLTF("./shape_key_cube.glb");
   const animations = useAnimations(shapeKeyCube.animations, shapeKeyCube.scene);
+  
+  shapeKeyCube.nodes.Cube011.receiveShadow = true;
+  shapeKeyCube.nodes.Cube011.castShadow = true;
   
   useEffect(() => {
     const animation = animations.actions.KeyAction;
 
     animation.play();
     animation.paused = true;
-  })
-
-  // Animate cube shapekey based on scroll amount
-
-  // window.addEventListener('scroll', () => {
-  //   const animation = animations.actions.KeyAction;
-  //   const scrollProgress = window.scrollY / window.innerHeight;
-  //   const totalDuration = animation.getClip().duration;
-
-  //   const currentTime = totalDuration * scrollProgress;
-
-  //   animation.play();
-  //   animation.paused = true
-  //   animation.time = currentTime;
-    
-  // })
-
+  }, [])
 
   useFrame(() => {
 
@@ -181,7 +190,7 @@ function Stage() {
 
   return (
     <>
-      <primitive object={stage.scene}></primitive> 
+      <primitive object={stage.scene} />
       <primitive object={shapeKeyCube.scene} />
     </>
   )
@@ -201,20 +210,17 @@ function Camera() {
     intro.setLoop(LoopOnce)
     intro.play();
 
-    console.log(intro)
-
   }, [])
 
   return (
 
-    <group ref={group} dispose={null}>
+    <group ref={group}>
       <group name="Scene">
         <PerspectiveCamera
           name="Camera002"
           makeDefault
           far={1000}
           near={0.1}
-          // fov={19.16}
           fov={25}
           position={[9.54, 5.66, 22.09]}
           rotation={[0.1, 1.03, -0.13]}
@@ -225,11 +231,68 @@ function Camera() {
   );
 }
 
+function Fireflies() {
+
+const firefliesCount = 100;
+const positionArr = new Float32Array(firefliesCount * 3);
+
+for (let i = 0; i < firefliesCount; i++) {
+  positionArr[i * 3 + 0] = (Math.random() - 0.5) * 13;
+  positionArr[i * 3 + 1] = (Math.random() * 7) + 1;
+  positionArr[i * 3 + 2] = (Math.random() -0.5) * 15;
+}
+
+
+  return(
+    <points >
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          count={positionArr.length / 3}
+          array={positionArr}
+          itemSize={3}
+        />
+      </bufferGeometry>
+      <pointsMaterial size={0.2} color="#ffff" sizeAttenuation />
+    </points>
+  )
+}
+
+function Overlay() {
+
+  //Loading Overlay
+
+  const overlayShader = {
+    uniforms: {
+      uAlpha: {value: 0}
+    },
+    vertexShader: `
+      void main () {
+        gl_Position = vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float uAlpha;
+
+      void main () {
+        gl_FragColor = vec4(0.40, 0.41, 1.00, uAlpha);
+      }
+    `
+  }
+
+  return (
+    <mesh>
+        <planeGeometry args={[2, 2, 1, 1]} />
+        <shaderMaterial attach="material" args={[overlayShader]} transparent/>
+    </mesh>
+  )
+}
+
 function Container() {
 
   return ( 
   <>
-    <div className="html">
+    {/* <div className="html">
       <p>asdadadasd</p>
       <p>asdadadasd</p>
       <p>asdadadasd</p>
@@ -238,7 +301,7 @@ function Container() {
       <p>asdadadasd</p>
       <p>asdadadasd</p>
       <p>asdadadasd</p>
-    </div>
+    </div> */}
     <div className="container">
       
       {/* <Canvas camera={{position: [1, 2, 4.5]}}>
@@ -286,12 +349,34 @@ function Container() {
 
       </Canvas> */}
 
-      <Canvas>
+      <Canvas shadows>
 
-        <pointLight position={[3, 5, 7]}/>
+        <ambientLight intensity={0.2} />
+        <pointLight 
+          shadow-normalBias={0.02}
+          shadow-mapSize-height={2048}
+          shadow-mapSize-width={2048}
+          castShadow 
+          position={[10, 7, 10]} 
+          intensity={0.7}
+        />
         {/* <OrbitControls /> */}
+        <Perf />
+
+        <Overlay />
+
+        <Camera /> 
         <Stage />
-        <Camera />
+        <Fireflies />
+        
+        {/* <mesh castShadow receiveShadow rotation-x={Math.PI * -0.5} scale={6}>
+          <planeGeometry args={[1, 1, 1]} />
+          <meshStandardMaterial />
+        </mesh>
+        <mesh position={[0, .8, 0]} castShadow receiveShadow scale={0.05}>
+          <sphereGeometry args={[15, 32, 16]}/>
+          <meshStandardMaterial color={'coral'} />
+        </mesh> */}
 
       </Canvas>
 
